@@ -83,7 +83,7 @@ func (s *storageFS) CreateBucket(name string, versioningEnabled bool) error {
 }
 
 func (s *storageFS) createBucket(name string) error {
-	return os.MkdirAll(filepath.Join(s.rootDir, url.PathEscape(name)), 0o700)
+	return os.MkdirAll(filepath.Join(s.rootDir, url.PathEscape(name)), 0o777)
 }
 
 // ListBuckets returns a list of buckets from the list of directories in the
@@ -165,7 +165,9 @@ func (s *storageFS) CreateObject(obj StreamingObject) (StreamingObject, error) {
 		return StreamingObject{}, err
 	}
 
-	path := filepath.Join(s.rootDir, url.PathEscape(obj.BucketName), url.PathEscape(obj.Name))
+	path := filepath.Join(s.rootDir, url.PathEscape(obj.BucketName), obj.Name)
+	err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	os.Chmod(filepath.Dir(path), 0o777)
 
 	tempFile, err := os.CreateTemp(filepath.Dir(path), "fake-gcs-object")
 	if err != nil {
@@ -184,7 +186,7 @@ func (s *storageFS) CreateObject(obj StreamingObject) (StreamingObject, error) {
 	// removed.
 	defer os.Remove(tempFile.Name())
 
-	err = os.Chmod(tempFile.Name(), 0o600)
+	err = os.Chmod(tempFile.Name(), 0o666)
 	if err != nil {
 		return StreamingObject{}, err
 	}
@@ -277,7 +279,7 @@ func (s *storageFS) GetObjectWithGeneration(bucketName, objectName string, gener
 }
 
 func (s *storageFS) getObject(bucketName, objectName string) (StreamingObject, error) {
-	path := filepath.Join(s.rootDir, url.PathEscape(bucketName), url.PathEscape(objectName))
+	path := filepath.Join(s.rootDir, url.PathEscape(bucketName), objectName)
 
 	encoded, err := s.mh.read(path)
 	if err != nil {
@@ -322,7 +324,7 @@ func (s *storageFS) DeleteObject(bucketName, objectName string) error {
 	if objectName == "" {
 		return errors.New("can't delete object with empty name")
 	}
-	path := filepath.Join(s.rootDir, url.PathEscape(bucketName), url.PathEscape(objectName))
+	path := filepath.Join(s.rootDir, url.PathEscape(bucketName), objectName)
 	if err := s.mh.remove(path); err != nil {
 		return err
 	}

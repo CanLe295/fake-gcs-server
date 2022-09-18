@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  gcs:
+    image: canle9/fake-gcs-custom
+    ports:
+      - 4443:4443
+    command: -scheme http -public-host localhost -backend memory
